@@ -1,0 +1,49 @@
+#Analysis of NOAA Data to Visualize Differences in Population Health and Economics by Weather Event Types 
+ 
+###Synopsis
+Raw data collected by NOAA provides event based data for every storm event in the United States for over 50 years. The data broken up by event types includes information round dates and times the event started as well as the cost econmically and the cost to human livlihood.  The data will be processed and analyzed to provide exploritory information about each event.  
+
+
+
+
+###Loading and preprocessing the data
+```{r}
+library(ggplot2)
+library(dplyr)
+library(knitr)
+
+###set working dir
+setwd("c:\\rprograms\\reproducibleresearch\\reproducibleresearch")
+
+###download and unzip raw data from website
+datafile <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+download.file(datafile, tf <- tempfile(fileext = ".bz2"))
+
+###read csv data and create rawdata dataframe
+rawdata <- read.csv(tf)
+###Create tidydata as a subset of the rawdata
+tidydata <- rawdata[, c(1,2,7,8, 23,24,25,26,27,28)]
+
+###add column to sum fatalities and injury number 
+tidydata$death_injury <- as.numeric(as.character(tidydata$FATALITIES))+as.numeric(as.character(tidydata$INJURIES))
+
+###create a vector to hold and allow for conversion of exp coding
+exponent_Finance <- tidydata$PROPDMGEXP 
+exp_value <- sapply(exponent_Finance, function(x) x<-toupper(x), if (x=='K') {1000} else if (x=='M') {1000000} else if (x=='H') {100} else if (x=='B') {1000000000} else {0})
+###create a vector to hold and allow for conversion of exp coding
+exponent_Crop <- tidydata$CROPDMGEXP 
+exp_crop <- sapply(exponent_Crop, function(x) x<-toupper(x), if (x=='K') {1000} else if (x=='M') {1000000} else if (x=='H') {100} else if (x=='B') {1000000000} else {0})
+###bind new columns to tidydata set containing number value for alpha label
+tidydata <- cbind(tidydata,exp_value, exp_crop)
+
+###add column that calculates property and crop damage in $                     
+tidydata$economic <- as.numeric(as.character(tidydata$PROPDMG))*tidydata$exp_value + as.numeric(as.character(tidydata$CROPDMG))*tidydata$exp_crop
+```
+
+```{r echo=TRUE}
+
+###plot graph
+ggplot(data=tidydata, aes(x=EVTYPE, y=death_injury)) + 
+     stat_summary(fun.y=sum, geom="point", color = "black", size=1) +
+     theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
+```
