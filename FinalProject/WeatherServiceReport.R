@@ -2,7 +2,6 @@
  
 ###Synopsis: Raw data collected by NOAA provides event based data for every storm event in the United States for over 50 years.  
 
-
 ###Loading and preprocessing the data
 library(ggplot2)
 library(dplyr)
@@ -17,40 +16,45 @@ download.file(datafile, tf <- tempfile(fileext = ".bz2"))
 
 ###read csv data and create rawdata dataframe
 rawdata <- read.csv(tf)
-###Create tidydata as a subset of the rawdata
-tidydata <- rawdata[, c(1,2,7,8, 23,24,25,26,27,28)]
+
+###Create tidydata as a subset of the rawdata - use visual inspection to help
+### columns include are event, fatalities, injuries, property costs with exponent and crop costs with exponent column
+tidydata <- rawdata[, c(8,23,24,25,26,27,28)]
 
 ###add column to sum fatalities and injury number 
-tidydata$death_injury <- as.numeric(as.character(tidydata$FATALITIES))+as.numeric(as.character(tidydata$INJURIES))
+tidydata$populationEffect <- as.numeric(as.character(tidydata$FATALITIES))+as.numeric(as.character(tidydata$INJURIES))
 
-###create a vector to hold and allow for conversion of exp coding
-exponent_Finance <- tidydata$PROPDMGEXP 
-exp_value <- sapply(exponent_Finance, function(x)  if (x=='K') {1000} else if (x=='M') {1000000} else if (x=='H') {100} else if (x=='B') {1000000000} else {0})
+###create a vector to hold and allow for conversion of exponent coding
+exponent_Prop <- tidydata$PROPDMGEXP 
+exp_prop <- sapply(exponent_Prop, function(x)  if (x=='K') {1000} else if (x=='M') {1000000} else if (x=='H') {100} else if (x=='B') {1000000000} else {0})
 ###create a vector to hold and allow for conversion of exp coding
 exponent_Crop <- tidydata$CROPDMGEXP 
 exp_crop <- sapply(exponent_Crop, function(x) if (x=='K') {1000} else if (x=='M') {1000000} else if (x=='H') {100} else if (x=='B') {1000000000} else {0})
 ###bind new columns to tidydata set containing number value for alpha label
-tidydata <- cbind(tidydata,exp_value, exp_crop)
+tidydata <- cbind(tidydata, exp_prop, exp_crop)
 
 ###add column that calculates property and crop damage in $                     
-tidydata$economic <- (as.numeric(as.character(tidydata$PROPDMG))*as.numeric(as.character(tidydata$exp_value)) + as.numeric(as.character(tidydata$CROPDMG))*as.numeric(as.character(tidydata$exp_crop)))
+tidydata$economicEffect <- (as.numeric(as.character(tidydata$PROPDMG))*as.numeric(as.character(tidydata$exp_prop)) + as.numeric(as.character(tidydata$CROPDMG))*as.numeric(as.character(tidydata$exp_crop)))
 
-summaryEconData <- aggregate(cbind(tidydata$EVTYPE, tidydata$death_injury, tidydata$economic), by=list(tidydata$EVTYPE), FUN=sum, na.rm=TRUE, na.action=NULL)
 
-#summarydata <- tidydata[order(-tidydata$economic), ]
 
-colnames(summaryEconData) <- c("Event", "Death_Injury", "Economic")
-summaryEconData <- summaryEconData[order(-summaryEconData$Death_Injury), ]
-head(summaryEconData)
+summarypopulationData <- aggregate(cbind(tidydata$EVTYPE, tidydata$populationEffect), by=list(tidydata$EVTYPE), FUN=sum, na.rm=TRUE, na.action=NULL)
+summaryeconomicData <- aggregate(cbind(tidydata$EVTYPE, tidydata$economicEffect), by=list(tidydata$EVTYPE), FUN=sum, na.rm=TRUE, na.action=NULL)
+colnames(summarypopulationData) <- c("Event","V1", "populationEffect")
+colnames(summaryeconomicData) <- c("Event", "V1", "economicEffect")
+
+summarypopulationData <- summarypopulationData[order(-summarypopulationData$populationEffect), ]
 
 ###plot graph
-ggplot(data=head(summaryEconData,10), aes(x=Event, y=Death_Injury)) + 
+ggplot(data=head(summarypopulationData ,10), aes(x=Event, y=populationEffect)) + 
      stat_summary(fun.y=sum, geom="bar", color = "black", size=1) +
-     theme( axis.ticks.x=element_blank())
+     theme( axis.ticks.x=element_blank())+
+     coord_flip()
 
-summaryEconData <- summaryEconData[order(-summaryEconData$Economic), ]
-head(summaryEconData)
+summaryeconomicData <- summaryeconomicData[order(-summaryeconomicData$economicEffect), ]
 
-ggplot(data=head(summaryEconData,10), aes(x=Event, y=Economic)) + 
+
+ggplot(data=head(summaryeconomicData,10), aes(x=Event, y=economicEffect)) + 
      stat_summary(fun.y=sum, geom="bar", color = "black", size=1) +
-     theme(axis.ticks.x=element_blank())
+     theme(axis.ticks.x=element_blank())+
+     coord_flip()
