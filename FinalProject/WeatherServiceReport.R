@@ -44,17 +44,19 @@ colnames(summarypopulationData) <- c("Event","V1", "populationEffect")
 colnames(summaryeconomicData) <- c("Event", "V1", "economicEffect")
 
 summarypopulationData <- summarypopulationData[order(-summarypopulationData$populationEffect), ]
-
 ###plot graph
-ggplot(data=head(summarypopulationData ,10), aes(x=Event, y=populationEffect)) + 
+ggplot(data=head(summarypopulationData,10), aes(x=Event, y=populationEffect)) + 
      stat_summary(fun.y=sum, geom="bar", color = "black", size=1) +
      theme( axis.ticks.x=element_blank())+
-     coord_flip()
-
+     coord_flip() +
+     ggtitle("Top 10 Events Affecting Human Population") +
+     ylab("Total (Fatalities + Injuries)") +
+     xlab("Event")
 summaryeconomicData <- summaryeconomicData[order(-summaryeconomicData$economicEffect), ]
-
-
 ggplot(data=head(summaryeconomicData,10), aes(x=Event, y=economicEffect)) + 
      stat_summary(fun.y=sum, geom="bar", color = "black", size=1) +
      theme(axis.ticks.x=element_blank())+
-     coord_flip()
+     coord_flip()+
+     ggtitle("Top 10 Events Affecting Economy") +
+     ylab("Total Cost($)(Property + Crop Damage)") +
+     xlab("Event")
